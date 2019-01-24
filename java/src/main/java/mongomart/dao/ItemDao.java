@@ -169,10 +169,12 @@ public class ItemDao {
          * TODO-lab2
          *
          * LAB #2: Count the items in the "item" collection, used for pagination
+         * 
+         * DONE
          *
          */
 
-        int count = 5;
+        long count = itemCollection.count();
 
         /**
          * TODO-lab2 Replace all code above
@@ -231,7 +233,7 @@ public class ItemDao {
          * DONE
          */
 
-        int count = (int) itemCollection.count(eq("category", category));
+        long count = itemCollection.count(eq("category", category));
 
         /**
          * TODO-lab2 Replace all code above
