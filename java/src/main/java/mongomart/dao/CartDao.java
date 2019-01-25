@@ -5,6 +5,11 @@ import com.mongodb.client.MongoDatabase;
 import mongomart.model.Cart;
 import mongomart.model.Item;
 import org.bson.Document;
+import static com.mongodb.client.model.Filters.eq;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * All database access to the "cart" collection
@@ -44,9 +49,37 @@ public class CartDao {
          * TODO-lab2
          *
          * LAB #2: Query the "cart" collection by userid and return a Cart object
+         * 
+         * DONE
          */
+        Document cartDoc = cartCollection.find(eq("userid", userid)).first();
+        Cart cart = docToCart(cartDoc); // TODO-lab2 replace this line
 
-        Cart cart = Cart.getMockCart(); // TODO-lab2 replace this line
+        return cart;
+    }
+
+    private Cart docToCart(Document document) {
+        Cart cart = new Cart();
+
+        cart.setId(document.getObjectId("_id"));
+        cart.setLast_modified(document.getDate("last_modified"));
+        cart.setStatus(document.getString("status"));
+        cart.setUserid(document.getString("userid"));
+
+        if (document.containsKey("items") && document.get("items") instanceof List) {
+            List<Item> items = new ArrayList<>();
+            List<Document> itemsList = (List<Document>) document.get("items");
+
+            for (Document itemDoc : itemsList) {
+                Item item = new Item();
+                item.setId(itemDoc.getInteger("_id"));
+            }
+
+            cart.setItems(items);
+        }
+        else {
+            cart.setItems(new ArrayList<>());
+        }
 
         return cart;
     }
@@ -67,7 +100,7 @@ public class CartDao {
          *
          * HINT: There are several cases you must account for here, such as an empty initial cart
          */
-
+        
     }
 
     /**
