@@ -101,8 +101,8 @@ public class ItemDao {
         if (document.containsKey("reviews") && document.get("reviews") instanceof List) {
             List<Review> reviews = new ArrayList<>();
             List<Document> reviewsList = (List<Document>)document.get("reviews");
-            int reviewCount = 0;
             int totalStars = 0;
+
             for (Document reviewDoc : reviewsList) {
                 Review review = new Review();
                 review.setComment(reviewDoc.getString("comment"));
@@ -111,11 +111,10 @@ public class ItemDao {
                 totalStars += reviewDoc.getInteger("stars");
                 review.setDate(reviewDoc.getDate("date"));
                 reviews.add(review);
-                reviewCount++;
             }
 
-            item.setStars(totalStars / reviewCount);
-            item.setNum_reviews(reviewCount);
+            item.setStars(totalStars / reviewsList.size());
+            item.setNum_reviews(reviewsList.size());
             item.setReviews(reviews);
         }
         else {

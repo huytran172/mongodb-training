@@ -2,12 +2,18 @@ package mongomart.dao;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.UpdateOptions;
+
 import mongomart.model.Cart;
 import mongomart.model.Item;
 import org.bson.Document;
+import org.bson.types.Decimal128;
+
 import static com.mongodb.client.model.Filters.eq;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -55,10 +61,21 @@ public class CartDao {
         Document cartDoc = cartCollection.find(eq("userid", userid)).first();
         Cart cart = docToCart(cartDoc); // TODO-lab2 replace this line
 
+        if (cart == null) {
+            cart = new Cart();
+            cart.setUserid(userid);
+            cart.setLast_modified(new Date());
+            cart.setStatus("active");
+            cart.setItems(new ArrayList<Item>());
+            return cart;
+        }
+
         return cart;
     }
 
     private Cart docToCart(Document document) {
+        if (document == null) return null;
+
         Cart cart = new Cart();
 
         cart.setId(document.getObjectId("_id"));
@@ -72,7 +89,31 @@ public class CartDao {
 
             for (Document itemDoc : itemsList) {
                 Item item = new Item();
-                item.setId(itemDoc.getInteger("_id"));
+
+                if (itemDoc.containsKey("_id")) {
+                    item.setId(itemDoc.getInteger("_id"));
+                }
+
+                if (itemDoc.containsKey("title")) {
+                    item.setTitle(itemDoc.getString("title"));
+                }
+
+                if (itemDoc.containsKey("category")) {
+                    item.setCategory(itemDoc.getString("category"));
+                }
+
+                if (itemDoc.containsKey("quantity")) {
+                    item.setQuantity(itemDoc.getInteger("quantity"));
+                }
+                if (itemDoc.containsKey("price")) {
+                    item.setPrice(itemDoc.get("price", Decimal128.class).bigDecimalValue());
+                }
+                if (itemDoc.containsKey("img_url")) {
+                    item.setImg_url(itemDoc.getString("img_url"));
+
+                }
+
+                items.add(item);
             }
 
             cart.setItems(items);
@@ -82,6 +123,22 @@ public class CartDao {
         }
 
         return cart;
+    }
+
+    /**
+     * Convert a Cart object to a document
+     *
+     * @param cart
+     * @return
+     */
+    private Document cartToDoc(Cart cart) {
+        Document document = new Document();
+        document.append("_id", cart.getId());
+        document.append("status", cart.getStatus());
+        document.append("last_modified", cart.getLast_modified());
+        document.append("userid", cart.getUserid());
+        document.append("items", cart.getItems());
+        return document;
     }
 
     /**
@@ -100,7 +157,19 @@ public class CartDao {
          *
          * HINT: There are several cases you must account for here, such as an empty initial cart
          */
+
         
+        
+        Document itemDoc = new Document("_id", item.getId())
+            .append("title", item.getTitle())
+            .append("category", item.getCategory())
+            .append("quantity", item.getQuantity()) //
+            .append("price", item.getPrice())
+            .append("img_url", item.getImg_url());
+
+        Document updateDoc = new Document("$push", new Document("items", itemDoc));
+        cartCollection.updateOne(eq("userid", userid), updateDoc, new UpdateOptions().upsert(true));
+
     }
 
     /**
