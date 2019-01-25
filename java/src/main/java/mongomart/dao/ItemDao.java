@@ -20,6 +20,7 @@ import static com.mongodb.client.model.Filters.text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -92,7 +93,6 @@ public class ItemDao {
         item.setDescription(document.getString("description"));
         item.setCategory(document.getString("category"));
         item.setPrice(document.get("price", Decimal128.class).bigDecimalValue());
-        item.setStars(document.getInteger("stars"));
         item.setImg_url(document.getString("img_url"));
         item.setSlogan(document.getString("slogan"));
         if (document.containsKey("quantity")) {
@@ -101,16 +101,21 @@ public class ItemDao {
         if (document.containsKey("reviews") && document.get("reviews") instanceof List) {
             List<Review> reviews = new ArrayList<>();
             List<Document> reviewsList = (List<Document>)document.get("reviews");
-
+            int reviewCount = 0;
+            int totalStars = 0;
             for (Document reviewDoc : reviewsList) {
                 Review review = new Review();
                 review.setComment(reviewDoc.getString("comment"));
                 review.setName(reviewDoc.getString("name"));
                 review.setStars(reviewDoc.getInteger("stars"));
+                totalStars += reviewDoc.getInteger("stars");
                 review.setDate(reviewDoc.getDate("date"));
                 reviews.add(review);
+                reviewCount++;
             }
 
+            item.setStars(totalStars / reviewCount);
+            item.setNum_reviews(reviewCount);
             item.setReviews(reviews);
         }
         else {
@@ -324,7 +329,11 @@ public class ItemDao {
          */
 
         List<Category> categories = new ArrayList<>();
-        List aggrStages = Arrays.asList(Aggregates.group("$category", Accumulators.sum("count", 1)), Aggregates.sort(Sorts.descending("count")));
+        List aggrStages = Arrays.asList(
+            Aggregates.group("$category", Accumulators.sum("count", 1)), 
+            Aggregates.sort(Sorts.descending("count"))
+        );
+
         MongoCursor<Document> cursor = itemCollection.aggregate(aggrStages, Document.class)
             .useCursor(true).iterator();
 
@@ -367,6 +376,16 @@ public class ItemDao {
          * HINT: Remember that reviews are a list within the Item object
          *
          */
+
+        int idNum = Utils.getIntFromString(itemid);
+        Review review = new Review();
+        review.setComment(review_text);
+        review.setDate(new Date());
+        review.setName(name);
+        review.setStars(Utils.getIntFromString(stars));
+
+        Document updateDoc = new Document("$push", new Document("reviews", reviewToDoc(review)));
+        itemCollection.updateOne(eq("_id", idNum), updateDoc);
     }
 
     /**
