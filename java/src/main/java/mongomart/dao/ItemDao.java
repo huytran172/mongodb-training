@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.util.Util;
 
 import mongomart.config.Utils;
@@ -16,6 +17,7 @@ import mongomart.model.Review;
 import org.bson.types.Decimal128;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.text;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -322,21 +324,21 @@ public class ItemDao {
          */
 
         List<Category> categories = new ArrayList<>();
-        List aggrStages = Arrays.asList(Aggregates.group("$category", Accumulators.sum("count", 1)));
+        List aggrStages = Arrays.asList(Aggregates.group("$category", Accumulators.sum("count", 1)), Aggregates.sort(Sorts.descending("count")));
         MongoCursor<Document> cursor = itemCollection.aggregate(aggrStages, Document.class)
             .useCursor(true).iterator();
 
         int total = 0;
+
         while (cursor.hasNext()) {
             Document doc = cursor.next();
             int count = doc.getInteger("count");
             Category cat = new Category(doc.getString("_id"), count);
             categories.add(cat);
             total += count;
-
         }
 
-        Category all = new Category("All", (int) getItemsCount());
+        Category all = new Category("All", total);
         categories.add(all);
 
 
